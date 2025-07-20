@@ -1,16 +1,13 @@
 #include <windows.h>
 #include <iostream>
-#include <vector>
-#include <string>
 
-#define MAX_BUFFER_SIZE 64
+POINT cursorPos = {0};
 
-LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
+LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     if (msg == WM_INPUT) {
         UINT dwSize = 0;
         GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
-        BYTE lpb[MAX_BUFFER_SIZE];
+        BYTE lpb[64];
 
         if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) != dwSize)
             return 0;
@@ -18,33 +15,41 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         RAWINPUT* raw = (RAWINPUT*)lpb;
 
         if (raw->header.dwType == RIM_TYPEMOUSE) {
-            LONG x = raw->data.mouse.lLastX;
-            LONG y = raw->data.mouse.lLastY;
-            USHORT flags = raw->data.mouse.usButtonFlags;
+            LONG dx = raw->data.mouse.lLastX;
+            LONG dy = raw->data.mouse.lLastY;
 
-            std::cout << "Mouse: X=" << x << " Y=" << y << " BtnFlags=" << flags << std::endl;
+            if (GetCursorPos(&cursorPos)) {
+                cursorPos.x += dx;
+                cursorPos.y += dy;
+
+                int screenX = GetSystemMetrics(SM_CXSCREEN);
+                int screenY = GetSystemMetrics(SM_CYSCREEN);
+                cursorPos.x = max(0, min(screenX - 1, cursorPos.x));
+                cursorPos.y = max(0, min(screenY - 1, cursorPos.y));
+
+                SetCursorPos(cursorPos.x, cursorPos.y);
+            }
         }
+
         return 0;
     }
 
     return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
-int main()
-{
-    WNDCLASS wc = { 0 };
+int main() {
+    WNDCLASS wc = {0};
     wc.lpfnWndProc = WndProc;
     wc.hInstance = GetModuleHandle(NULL);
-    wc.lpszClassName = "RawInputLogger";
+    wc.lpszClassName = "TouchScrollInjector";
 
     RegisterClass(&wc);
-
-    HWND hwnd = CreateWindowEx(0, "RawInputLogger", "RawInput Logger", 0,
+    HWND hwnd = CreateWindowEx(0, "TouchScrollInjector", "TouchScrollInjector", 0,
         0, 0, 100, 100, HWND_MESSAGE, NULL, wc.hInstance, NULL);
 
     RAWINPUTDEVICE rid;
-    rid.usUsagePage = 0x01; // Generic desktop controls
-    rid.usUsage = 0x02;     // Mouse
+    rid.usUsagePage = 0x01;
+    rid.usUsage = 0x02;
     rid.dwFlags = RIDEV_INPUTSINK;
     rid.hwndTarget = hwnd;
 
@@ -53,8 +58,7 @@ int main()
         return 1;
     }
 
-    std::cout << "✅ RawInput Logger Started — move touchpad or mouse.\n";
-    std::cout << "Press Ctrl+C to exit.\n";
+    std::cout << "✅ TouchScrollInjector started.\nMove finger on touchpad to drag scroll.\n";
 
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0)) {
