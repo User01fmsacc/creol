@@ -1,0 +1,21 @@
+; AlpsFilterDriver.inf - Filter driver INF for ALPS Touchpad (PS/2)
+
+[Version] Signature="$WINDOWS NT$" Class=Mouse ClassGuid={4D36E96F-E325-11CE-BFC1-08002BE10318} Provider=%ProviderName% DriverVer=07/20/2025,1.0.0.0 CatalogFile=AlpsFilterDriver.cat
+
+[DestinationDirs] DefaultDestDir = 12  ; DIRID_DRIVERS
+
+[Manufacturer] %MfgName%=AlpsFilter,NTx64
+
+[AlpsFilter.NTx64] %AlpsFilter.SvcDesc%=AlpsFilter_Inst, *PNP0F13  ; PS/2 Mouse Compatible ID
+
+[AlpsFilter_Inst] CopyFiles=Drivers_Dir AddReg=AlpsFilter_AddReg
+
+[AlpsFilter_Inst.Services] AddService=AlpsFilterDriver, 0x00000002, AlpsFilter_Service_Inst
+
+[Drivers_Dir] AlpsFilterDriver.sys
+
+[AlpsFilter_AddReg] HKR, , UpperFilters, 0x00010000, "AlpsFilterDriver"
+
+[AlpsFilter_Service_Inst] DisplayName=%AlpsFilter.SvcDesc% ServiceType=1 StartType=3 ErrorControl=1 ServiceBinary=%12%\AlpsFilterDriver.sys
+
+[Strings] ProviderName="Alps Custom" MfgName="Alps Electric" AlpsFilter.SvcDesc="ALPS Touchpad Filter Driver"
