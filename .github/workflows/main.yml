@@ -18,7 +18,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Compile main.cpp
-        run: cl /nologo /O2 /MT /W4 /EHsc main.cpp /link User32.lib
+        run: cl /nologo /O2 /MT /W4 /EHsc /FeRawInputLogger.exe main.cpp /link User32.lib
 
       - name: Upload EXE
         uses: actions/upload-artifact@v4
