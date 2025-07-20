@@ -1,82 +1,66 @@
 #include <windows.h>
 #include <iostream>
-#include <cstdio>
 #include <vector>
 #include <string>
 
-static HANDLE openMouseClass()
+#define MAX_BUFFER_SIZE 64
+
+LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    for (int i = 0; i < 10; ++i) {
-        char path[64];
-        std::snprintf(path, sizeof(path), "\\\\.\\MouseClass%d", i);
-        HANDLE h = CreateFileA(path,
-                               GENERIC_READ,
-                               FILE_SHARE_READ | FILE_SHARE_WRITE,
-                               NULL,
-                               OPEN_EXISTING,
-                               0,
-                               NULL);
-        if (h != INVALID_HANDLE_VALUE) {
-            std::cout << "[+] Opened " << path << std::endl;
-            return h;
+    if (msg == WM_INPUT) {
+        UINT dwSize = 0;
+        GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
+        BYTE lpb[MAX_BUFFER_SIZE];
+
+        if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) != dwSize)
+            return 0;
+
+        RAWINPUT* raw = (RAWINPUT*)lpb;
+
+        if (raw->header.dwType == RIM_TYPEMOUSE) {
+            LONG x = raw->data.mouse.lLastX;
+            LONG y = raw->data.mouse.lLastY;
+            USHORT flags = raw->data.mouse.usButtonFlags;
+
+            std::cout << "Mouse: X=" << x << " Y=" << y << " BtnFlags=" << flags << std::endl;
         }
+        return 0;
     }
-    return INVALID_HANDLE_VALUE;
+
+    return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
-int main(int argc, char* argv[])
+int main()
 {
-    // Optional log file
-    FILE* flog = NULL;
-    if (argc >= 2) {
-        flog = std::fopen(argv[1], "wb");
-        if (!flog) {
-            std::cerr << "[-] Could not open log file " << argv[1] << " for writing.\n";
-        } else {
-            std::cout << "[+] Logging to " << argv[1] << std::endl;
-        }
-    }
+    WNDCLASS wc = { 0 };
+    wc.lpfnWndProc = WndProc;
+    wc.hInstance = GetModuleHandle(NULL);
+    wc.lpszClassName = "RawInputLogger";
 
-    HANDLE hMouse = openMouseClass();
-    if (hMouse == INVALID_HANDLE_VALUE) {
-        std::cerr << "[-] Failed to open any MouseClass device. Error: " << GetLastError() << std::endl;
-        std::cerr << "    Tip: Run as Administrator.\n";
+    RegisterClass(&wc);
+
+    HWND hwnd = CreateWindowEx(0, "RawInputLogger", "RawInput Logger", 0,
+        0, 0, 100, 100, HWND_MESSAGE, NULL, wc.hInstance, NULL);
+
+    RAWINPUTDEVICE rid;
+    rid.usUsagePage = 0x01; // Generic desktop controls
+    rid.usUsage = 0x02;     // Mouse
+    rid.dwFlags = RIDEV_INPUTSINK;
+    rid.hwndTarget = hwnd;
+
+    if (!RegisterRawInputDevices(&rid, 1, sizeof(rid))) {
+        std::cerr << "RegisterRawInputDevices failed." << std::endl;
         return 1;
     }
 
-    std::cout << "=== ALPS PS/2 Raw Packet Logger ===\n"
-                 "Move finger(s) on touchpad.\n"
-                 "Press Ctrl+C to stop.\n\n";
+    std::cout << "✅ RawInput Logger Started — move touchpad or mouse.\n";
+    std::cout << "Press Ctrl+C to exit.\n";
 
-    BYTE buffer[32];           // Some drivers send >3 bytes; ALPS often 6–9
-    DWORD bytesRead = 0;
-
-    while (true) {
-        BOOL ok = ReadFile(hMouse, buffer, sizeof(buffer), &bytesRead, NULL);
-        if (!ok) {
-            DWORD err = GetLastError();
-            if (err == ERROR_OPERATION_ABORTED) break;
-            std::cerr << "[-] ReadFile failed. Error: " << err << std::endl;
-            Sleep(50);
-            continue;
-        }
-        if (bytesRead == 0) continue;
-
-        std::cout << "Packet:";
-        for (DWORD i = 0; i < bytesRead; ++i) {
-            std::printf(" %02X", buffer[i]);
-        }
-        std::cout << std::endl;
-
-        if (flog) {
-            for (DWORD i = 0; i < bytesRead; ++i)
-                std::fprintf(flog, "%02X ", buffer[i]);
-            std::fprintf(flog, "\n");
-            std::fflush(flog);
-        }
+    MSG msg;
+    while (GetMessage(&msg, NULL, 0, 0)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
     }
 
-    if (flog) std::fclose(flog);
-    CloseHandle(hMouse);
     return 0;
 }
