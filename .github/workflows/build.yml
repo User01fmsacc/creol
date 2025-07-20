@@ -19,12 +19,12 @@ jobs:
 
     - name: Build Driver
       run: |
-        msbuild AlpsFilterDriver.vcxproj /p:Configuration=Release /p:Platform=x64
+        msbuild Driver/AlpsFilterDriver.vcxproj /p:Configuration=Release /p:Platform=x64
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: AlpsDriver-Build
         path: |
-          x64/Release/AlpsFilterDriver.sys
-          AlpsFilterDriver.inf
+          Driver/x64/Release/AlpsFilterDriver.sys
+          Driver/AlpsFilterDriver.inf
