@@ -1,0 +1,27 @@
+name: Build ALPS PS2 Logger
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Compile (Win7-compatible, static runtime)
+        run: cl /nologo /O2 /MT /W3 /EHsc /FeALPSLogger.exe main.cpp
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ALPSLogger
+          path: ALPSLogger.exe
