@@ -12,7 +12,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
@@ -21,7 +21,7 @@ jobs:
         run: cl /nologo /O2 /MT /W3 /EHsc /FeALPSLogger.exe main.cpp
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ALPSLogger
           path: ALPSLogger.exe
