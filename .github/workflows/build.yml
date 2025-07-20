@@ -1,0 +1,30 @@
+name: Build Alps KMDF Driver
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.1
+
+    - name: Build Driver
+      run: |
+        msbuild AlpsFilterDriver.vcxproj /p:Configuration=Release /p:Platform=x64
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: AlpsDriver-Build
+        path: |
+          x64/Release/AlpsFilterDriver.sys
+          AlpsFilterDriver.inf
