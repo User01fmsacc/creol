@@ -1,27 +1,24 @@
-name: Build RawInput Logger
+name: Build TouchScrollInjector
 
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
-  build-windows:
+  build:
     runs-on: windows-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Setup MSVC
+      - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Compile main.cpp
-        run: cl /nologo /O2 /MT /W4 /EHsc /FeRawInputLogger.exe main.cpp /link User32.lib
+      - name: Compile TouchScrollInjector
+        run: cl /nologo /O2 /MT /W4 /EHsc /FeTouchScrollInjector.exe main.cpp /link User32.lib
 
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
-          name: RawInputLogger
-          path: RawInputLogger.exe
+          name: TouchScrollInjector
+          path: TouchScrollInjector.exe
